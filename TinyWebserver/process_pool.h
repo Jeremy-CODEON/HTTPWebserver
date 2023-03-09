@@ -11,7 +11,7 @@ public:
 };
 
 /*
-* @brief 进程元数据
+* @brief 进程元数据类
 */
 class ProcessMeta {
 public:
@@ -27,7 +27,7 @@ public:
 };
 
 /*
-* @brief 进程池
+* @brief 进程池类
 */
 template<typename T>
 class ProcessPool {
@@ -157,8 +157,10 @@ public:
 
 template<typename T>
 ProcessPool<T>* ProcessPool<T>::instance = nullptr;
+
 template<typename T>
 ProcessMeta* ProcessPool<T>::sub_process_metas = nullptr;
+
 template<typename T>
 int ProcessPool<T>::sig_pipefd[2] = { -1, -1 };
 
@@ -171,7 +173,6 @@ ProcessPool<T>::ProcessPool(int process_n) :
 #ifdef DEBUG
 	printf("ProcessPool constructor\n");
 #endif // DEBUG
-
 
 	// 新建子进程元数据表
 	sub_process_metas = new ProcessMeta[sub_process_n];

@@ -3,22 +3,6 @@
 #include "core.h"
 
 /*
-* @brief 进程元数据
-*/
-class ProcessMeta {
-public:
-	pid_t sub_pid;  /*子进程PID，父进程-1*/
-	int sub_pipefd[2];  /*父子进程的通信管道，父[0]子[1]*/
-
-public:
-	/*
-	* @brief 父进程的无参构造函数
-	* @param
-	*/
-	ProcessMeta() :sub_pid(-1) {};
-};
-
-/*
 * @brief 进程池执行类抽象类
 */
 class ProcessExecutableBase {
@@ -44,7 +28,23 @@ public:
 };
 
 /*
-* @brief 进程池
+* @brief 进程元数据类
+*/
+class ProcessMeta {
+public:
+	pid_t sub_pid;  /*子进程PID，父进程-1*/
+	int sub_pipefd[2];  /*父子进程的通信管道，父[0]子[1]*/
+
+public:
+	/*
+	* @brief 父进程的无参构造函数
+	* @param
+	*/
+	ProcessMeta() :sub_pid(-1) {};
+};
+
+/*
+* @brief 进程池类
 */
 class ProcessPool {
 private:
