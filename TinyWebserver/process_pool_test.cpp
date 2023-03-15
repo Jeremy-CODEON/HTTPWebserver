@@ -1,6 +1,6 @@
 #include "process_pool_test.h"
 
-ProcessPool* ProcessPool::instance = nullptr;
+//ProcessPool* ProcessPool::instance = nullptr;
 ProcessMeta* ProcessPool::sub_process_metas = nullptr;
 int ProcessPool::sig_pipefd[2] = { -1, -1 };
 
@@ -57,8 +57,12 @@ ProcessPool::ProcessPool(int process_n) :
  
 ProcessPool::~ProcessPool()
 {
-	if (instance != nullptr) {
-		delete []instance;
+#ifdef DEBUG
+	printf("process %d destory.\n", sub_index);
+#endif // DEBUG
+	destory();
+	if (sub_process_metas != nullptr) {
+		delete []sub_process_metas;
 	}
 }
 
@@ -235,6 +239,11 @@ void ProcessPool::run_child() {
 			}
 		}
 	}
+
+#ifdef DEBUG
+	printf("child process %d is end.\n", sub_index);
+#endif // DEBUG
+
 }
 
 void ProcessPool::run() {
@@ -328,12 +337,20 @@ void ProcessPool::sig_init()
 	sig_add_handler(SIGPIPE, sig_handler);
 }
 
-ProcessPool* ProcessPool::get_instance(int process_n)
+ProcessPool& ProcessPool::get_instance(int process_n)
 {
-	if (instance == nullptr) {
+	/*if (instance == nullptr) {
 		instance = new ProcessPool(process_n);
 		instance->run();
-	}
+	}*/
+
+	static ProcessPool instance(process_n);
+	instance.run();
+
+#ifdef DEBUG
+	printf("process %d instance has got.\n", instance.sub_index);
+#endif // DEBUG
+
 	return instance;
 }
 

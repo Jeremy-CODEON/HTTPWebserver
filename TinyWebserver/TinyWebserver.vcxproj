@@ -82,6 +82,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="process_pool.cpp" />
     <ClCompile Include="process_pool_test.cpp" />
+    <ClCompile Include="thread_pool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="buffer_io.h" />
@@ -89,6 +90,7 @@
     <ClInclude Include="base_io.h" />
     <ClInclude Include="process_pool.h" />
     <ClInclude Include="process_pool_test.h" />
+    <ClInclude Include="thread_pool.h" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

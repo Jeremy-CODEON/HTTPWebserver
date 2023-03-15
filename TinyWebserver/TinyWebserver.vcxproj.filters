@@ -7,6 +7,7 @@
     <ClCompile Include="buffer_io.cpp" />
     <ClCompile Include="process_pool.cpp" />
     <ClCompile Include="process_pool_test.cpp" />
+    <ClCompile Include="thread_pool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base_io.h" />
@@ -14,5 +15,6 @@
     <ClInclude Include="buffer_io.h" />
     <ClInclude Include="process_pool.h" />
     <ClInclude Include="process_pool_test.h" />
+    <ClInclude Include="thread_pool.h" />
   </ItemGroup>
 </Project>

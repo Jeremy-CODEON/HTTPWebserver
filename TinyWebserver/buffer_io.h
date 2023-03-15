@@ -4,7 +4,7 @@
 #include "core.h"
 
 /*
-* @brief 缓冲区结构
+* @brief 缓冲区结构类
 */
 class Buffer {
 public:

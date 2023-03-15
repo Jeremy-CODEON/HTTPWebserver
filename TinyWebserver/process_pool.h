@@ -20,7 +20,7 @@ public:
 
 public:
 	/*
-	* @brief 父进程的无参构造函数
+	* @brief 父进程调用的无参构造函数
 	* @param
 	*/
 	ProcessMeta() :sub_pid(-1) {};
@@ -35,7 +35,7 @@ private:
 	const int MAX_PROCESS_NUMBER = core::MAX_PROCESS_NUMBER;  /*最大子进程数量*/
 	const int MAX_EVENT_NUMBER = core::MAX_EVENT_NUMBER;  /*epoll最大监听数*/
 	
-	static ProcessPool* instance;  /*进程池实例*/
+	//static ProcessPool* instance;  /*进程池实例*/
 	static ProcessMeta* sub_process_metas;  /*子进程元数据表*/
 
 	int sub_process_n;  /*子进程数量*/
@@ -62,7 +62,7 @@ private:
 	/*
 	* @brief 进程池析构函数
 	*/
-	~ProcessPool();	
+	~ProcessPool();
 
 	/*
 	* @brief 父进程启动函数
@@ -133,30 +133,50 @@ private:
 	*/
 	int get_sub_process();
 
-public:
-	/*
-	* @brief 获得单例模式下的实例
-	* @param process_n => 进程池子进程数量
-	*/
-	static ProcessPool* get_instance(int process_n = 4);	
-
-	/* 
-	* @brief 用子进程执行，仅父进程执行
-	* @retval 0 => success
-	* @retval -1 => error
-	*/
-	int execute(T obj);
-
 	/*
 	* @brief 结束所有子进程，仅父进程执行
 	* @retval 0 => success
 	* @retval -1 => error
 	*/
 	int destory();
+
+public:
+	/*
+	* @brief 获得单例模式下的实例
+	* @param process_n => 进程池子进程数量
+	*/
+	static ProcessPool& get_instance(int process_n = 4);	
+
+	/* 
+	* @brief 用子进程执行，仅父进程调用
+	* @retval 0 => success
+	* @retval -1 => error
+	*/
+	int execute(T obj);
+
+	/*
+	* @brief 获取进程池大小，仅父进程调用
+	* @retval sub_process_n => 子进程数
+	* @retval -1 => 子进程调用
+	*/
+	int get_n() const{ 
+		if (sub_index == -1) return sub_process_n;
+		else return -1;
+	}
+
+	/*
+	* @brief 获取存活子进程数量，仅父进程调用
+	* @retval sub_process_n => 存活子进程数
+	* @retval -1 => 子进程调用
+	*/
+	int get_live_n() const{ 
+		if (sub_index == -1) return sub_alive_process_n;
+		else return -1;
+	}
 };
 
-template<typename T>
-ProcessPool<T>* ProcessPool<T>::instance = nullptr;
+//template<typename T>
+//ProcessPool<T>* ProcessPool<T>::instance = nullptr;
 
 template<typename T>
 ProcessMeta* ProcessPool<T>::sub_process_metas = nullptr;
@@ -167,7 +187,8 @@ int ProcessPool<T>::sig_pipefd[2] = { -1, -1 };
 template<typename T>
 ProcessPool<T>::ProcessPool(int process_n) :
 	sub_process_n(process_n), sub_alive_process_n(process_n),
-	sub_index(-1), epollfd(-1), is_stop(false) {
+	sub_index(-1), epollfd(-1), is_stop(false) 
+{
 	assert((process_n > 0) && (process_n <= MAX_PROCESS_NUMBER));
 
 #ifdef DEBUG
@@ -176,6 +197,7 @@ ProcessPool<T>::ProcessPool(int process_n) :
 
 	// 新建子进程元数据表
 	sub_process_metas = new ProcessMeta[sub_process_n];
+	assert(sub_process_metas != nullptr);
 
 	for (int i = 0; i < sub_process_n; ++i) {
 		// 建立父子进程的管道通信
@@ -213,18 +235,28 @@ ProcessPool<T>::ProcessPool(int process_n) :
 			break;
 		}
 	}
+
+	// 启动进程池
+	run();
 }
 
 template<typename T>
 ProcessPool<T>::~ProcessPool()
 {
-	if (instance != nullptr) {
-		delete[]instance;
+#ifdef DEBUG
+	printf("process %d destory.\n", sub_index);
+#endif // DEBUG
+
+	// 自动销毁进程池，RAII机制
+	destory();
+	if (sub_process_metas != nullptr) {
+		delete[]sub_process_metas;
 	}
 }
 
 template<typename T>
-void ProcessPool<T>::run_parent() {
+void ProcessPool<T>::run_parent() 
+{
 	// 创建epoll事件监听表
 	if ((epollfd = epoll_create(100)) == -1) {
 		core::unix_error("Run parent epoll create error");
@@ -319,7 +351,8 @@ void ProcessPool<T>::run_parent() {
 }
 
 template<typename T>
-void ProcessPool<T>::run_child() {
+void ProcessPool<T>::run_child() 
+{
 	// 创建epoll事件监听表
 	if ((epollfd = epoll_create(100)) == -1) {
 		core::unix_error("Run child epoll create error");
@@ -398,10 +431,19 @@ void ProcessPool<T>::run_child() {
 			}
 		}
 	}
+
+#ifdef DEBUG
+	printf("child process %d is end.\n", sub_index);
+#endif // DEBUG
 }
 
 template<typename T>
-void ProcessPool<T>::run() {
+void ProcessPool<T>::run() 
+{
+#ifdef DEBUG
+	printf("process %d run.\n", sub_index);
+#endif // DEBUG
+
 	if (sub_index == -1) {
 		run_parent();
 	}
@@ -411,7 +453,8 @@ void ProcessPool<T>::run() {
 }
 
 template<typename T>
-int ProcessPool<T>::set_nonblocking(int fd) {
+int ProcessPool<T>::set_nonblocking(int fd) 
+{
 	// 获得旧选项
 	int old_option = fcntl(fd, F_GETFL);
 	// 设置新选项，将文件描述符设置为非阻塞
@@ -422,7 +465,8 @@ int ProcessPool<T>::set_nonblocking(int fd) {
 }
 
 template<typename T>
-void ProcessPool<T>::epoll_add(int epollfd, int fd) {
+void ProcessPool<T>::epoll_add(int epollfd, int fd) 
+{
 	assert(epollfd != -1 && fd > 0);
 
 	epoll_event event;
@@ -436,7 +480,8 @@ void ProcessPool<T>::epoll_add(int epollfd, int fd) {
 }
 
 template<typename T>
-void ProcessPool<T>::epoll_remove(int epollfd, int fd) {
+void ProcessPool<T>::epoll_remove(int epollfd, int fd) 
+{
 	assert(epollfd != -1 && fd > 0);
 
 	// 将fd从epollfd上移除
@@ -446,7 +491,8 @@ void ProcessPool<T>::epoll_remove(int epollfd, int fd) {
 }
 
 template<typename T>
-void ProcessPool<T>::sig_handler(int sig) {
+void ProcessPool<T>::sig_handler(int sig) 
+{
 	int save_errno = errno;
 	// 从内核发送给进程的消息就是要处理的信号，仅1字节
 	int msg = sig;
@@ -457,7 +503,8 @@ void ProcessPool<T>::sig_handler(int sig) {
 }
 
 template<typename T>
-void ProcessPool<T>::sig_add_handler(int sig, void(*handler)(int), bool restart) {
+void ProcessPool<T>::sig_add_handler(int sig, void(*handler)(int), bool restart)
+{
 
 	struct sigaction sa;
 	// 初始化结构
@@ -499,17 +546,25 @@ void ProcessPool<T>::sig_init()
 }
 
 template<typename T>
-ProcessPool<T>* ProcessPool<T>::get_instance(int process_n)
+ProcessPool<T>& ProcessPool<T>::get_instance(int process_n)
 {
-	if (instance == nullptr) {
+	/*if (instance == nullptr) {
 		instance = new ProcessPool(process_n);
 		instance->run();
-	}
+	}*/
+
+	static ProcessPool instance(process_n);
+
+#ifdef DEBUG
+	printf("process %d instance has got.\n", instance.sub_index);
+#endif // DEBUG
+
 	return instance;
 }
 
 template<typename T>
-int ProcessPool<T>::check_sub_process() {
+int ProcessPool<T>::check_sub_process() 
+{
 	if (sub_index != -1) {
 		// 子进程不能处理子进程
 		return 0;
@@ -538,7 +593,8 @@ int ProcessPool<T>::check_sub_process() {
 }
 
 template<typename T>
-int ProcessPool<T>::get_sub_process() {
+int ProcessPool<T>::get_sub_process() 
+{
 	if (sub_index != -1) {
 		// 子进程不能处理子进程
 		return 0;
@@ -559,7 +615,8 @@ int ProcessPool<T>::get_sub_process() {
 }
 
 template<typename T>
-int ProcessPool<T>::execute(T obj) {
+int ProcessPool<T>::execute(T obj)
+{
 	if (sub_index != -1) {
 		// 子进程不能处理子进程
 		return 0;
@@ -586,7 +643,8 @@ int ProcessPool<T>::execute(T obj) {
 }
 
 template<typename T>
-int ProcessPool<T>::destory() {
+int ProcessPool<T>::destory() 
+{
 	if (sub_index != -1) {
 		return 0;
 	}

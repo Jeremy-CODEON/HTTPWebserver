@@ -51,7 +51,7 @@ private:
 	const int MAX_PROCESS_NUMBER = core::MAX_PROCESS_NUMBER;  /*最大子进程数量*/
 	const int MAX_EVENT_NUMBER = core::MAX_EVENT_NUMBER;  /*epoll最大监听数*/
 	
-	static ProcessPool* instance;  /*进程池实例*/
+	//static ProcessPool* instance;  /*进程池实例*/
 	static ProcessMeta* sub_process_metas;  /*子进程元数据表*/
 
 	int sub_process_n;  /*子进程数量*/
@@ -78,7 +78,7 @@ private:
 	/*
 	* @brief 进程池析构函数
 	*/
-	~ProcessPool();	
+	~ProcessPool();
 
 	/*
 	* @brief 父进程启动函数
@@ -149,26 +149,26 @@ private:
 	*/
 	int get_sub_process();
 
-public:
-	/*
-	* @brief 获得单例模式下的实例
-	* @param process_n => 进程池子进程数量
-	*/
-	static ProcessPool* get_instance(int process_n = 4);	
-
-	/* 
-	* @brief 用子进程执行，仅父进程执行
-	* @retval 0 => success
-	* @retval -1 => error
-	*/
-	int execute(ProcessExecutable obj);
-
 	/*
 	* @brief 结束所有子进程，仅父进程执行
 	* @retval 0 => success
 	* @retval -1 => error
 	*/
 	int destory();
+
+public:
+	/*
+	* @brief 获得单例模式下的实例
+	* @param process_n => 进程池子进程数量
+	*/
+	static ProcessPool& get_instance(int process_n = 4);	
+
+	/* 
+	* @brief 用子进程执行，仅父进程执行
+	* @retval 0 => success
+	* @retval -1 => error
+	*/
+	int execute(ProcessExecutable obj);	
 };
 
 
