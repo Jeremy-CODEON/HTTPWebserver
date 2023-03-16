@@ -8,6 +8,8 @@
     <ClCompile Include="process_pool.cpp" />
     <ClCompile Include="process_pool_test.cpp" />
     <ClCompile Include="thread_pool.cpp" />
+    <ClCompile Include="web_server.cpp" />
+    <ClCompile Include="thread_pool_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base_io.h" />
@@ -16,5 +18,7 @@
     <ClInclude Include="process_pool.h" />
     <ClInclude Include="process_pool_test.h" />
     <ClInclude Include="thread_pool.h" />
+    <ClInclude Include="web_server.h" />
+    <ClInclude Include="thread_pool_test.h" />
   </ItemGroup>
 </Project>

@@ -36,16 +36,18 @@ private:
 	const int MAX_EVENT_NUMBER = core::MAX_EVENT_NUMBER;  /*epoll最大监听数*/
 	
 	//static ProcessPool* instance;  /*进程池实例*/
-	static ProcessMeta* sub_process_metas;  /*子进程元数据表*/
-
-	int sub_process_n;  /*子进程数量*/
-	int sub_alive_process_n;  /*存活子进程数量*/
-	int sub_index;  /*子进程序号，父进程-1*/
 
 	static int sig_pipefd[2];  /*内核与进程的信号管道，内核[0]进程[1]*/
 	int epollfd;  /*epoll内核事件表*/
 
 	bool is_stop;  /*是否终止进程循环*/
+
+public:
+	static ProcessMeta* sub_process_metas;  /*子进程元数据表*/
+
+	int sub_process_n;  /*子进程数量*/
+	int sub_alive_process_n;  /*存活子进程数量*/
+	int sub_index;  /*子进程序号，父进程-1*/
 
 private:
 	/*
@@ -85,26 +87,26 @@ private:
 	* @param fd => 文件描述符
 	* @retval old_option => 旧选项
 	*/
-	int set_nonblocking(int fd);
+	//int set_nonblocking(int fd);
 
 	/*
 	* @brief 为epoll增加新的监听文件
 	* @param
 	*/
-	void epoll_add(int epollfd, int fd);
+	//void epoll_add(int epollfd, int fd);
 
 	/*
 	* @brief 为epoll移除监听文件
 	* @param
 	*/
-	void epoll_remove(int epollfd, int fd);
+	//void epoll_remove(int epollfd, int fd);
 
 private:
 	/*
-	* @brief 信号处理函数
+	* @brief 信号处理函数，必须是静态函数
 	* @param sig => 信号
 	*/
-	static void sig_handler(int sig);
+	//static void sig_handler(int sig);
 
 	/*
 	* @brief 为信号绑定信号处理函数
@@ -112,12 +114,12 @@ private:
 	* @param handler => 信号处理函数
 	* @param restart => 是否重新调用被该信号终止的系统调用
 	*/
-	void sig_add_handler(int sig, void(*handler)(int), bool restart = true);
+	//void sig_add_handler(int sig, void(*handler)(int), bool restart = true);
 
 	/*
 	* @brief 信号初始化设置
 	*/
-	void sig_init();
+	//void sig_init();
 
 private:
 	/*
@@ -152,7 +154,7 @@ public:
 	* @retval 0 => success
 	* @retval -1 => error
 	*/
-	int execute(T obj);
+	int execute(T& task);
 
 	/*
 	* @brief 获取进程池大小，仅父进程调用
@@ -258,13 +260,13 @@ template<typename T>
 void ProcessPool<T>::run_parent() 
 {
 	// 创建epoll事件监听表
-	if ((epollfd = epoll_create(100)) == -1) {
+	/*if ((epollfd = epoll_create(100)) == -1) {
 		core::unix_error("Run parent epoll create error");
 		exit(1);
-	}
+	}*/
 
 	// 初始化信号统一事件源
-	sig_init();
+	//sig_init();
 
 #if 0
 	epoll_event events[MAX_EVENT_NUMBER];
@@ -347,7 +349,7 @@ void ProcessPool<T>::run_parent()
 #endif
 
 	// 关闭epoll事件监听表
-	close(epollfd);
+	//close(epollfd);
 }
 
 template<typename T>
@@ -360,12 +362,14 @@ void ProcessPool<T>::run_child()
 	}
 
 	// 初始化信号统一事件源
-	sig_init();
+	//sig_init();
+	// 将信号监听加入epoll，统一事件源
+	core::SignalUtils sig_utils(epollfd);
 
 	// 和父进程的通信管道
 	int sub_pipefd = sub_process_metas[sub_index].sub_pipefd[1];
 	// 监听该通信管道
-	epoll_add(epollfd, sub_pipefd);
+	core::EpollUtils::epoll_add(epollfd, sub_pipefd);
 
 	epoll_event events[MAX_EVENT_NUMBER];
 	while (!is_stop) {
@@ -452,6 +456,7 @@ void ProcessPool<T>::run()
 	}
 }
 
+#if 0
 template<typename T>
 int ProcessPool<T>::set_nonblocking(int fd) 
 {
@@ -544,6 +549,7 @@ void ProcessPool<T>::sig_init()
 	sig_add_handler(SIGINT, sig_handler);
 	sig_add_handler(SIGPIPE, sig_handler);
 }
+#endif
 
 template<typename T>
 ProcessPool<T>& ProcessPool<T>::get_instance(int process_n)
@@ -615,7 +621,7 @@ int ProcessPool<T>::get_sub_process()
 }
 
 template<typename T>
-int ProcessPool<T>::execute(T obj)
+int ProcessPool<T>::execute(T& task)
 {
 	if (sub_index != -1) {
 		// 子进程不能处理子进程
@@ -630,7 +636,7 @@ int ProcessPool<T>::execute(T obj)
 
 	// 和子进程的通信管道
 	int sub_pipefd = sub_process_metas[sub_process_index].sub_pipefd[0];
-	int send_n = send(sub_pipefd, reinterpret_cast<char*>(&obj), sizeof(obj), 0);
+	int send_n = send(sub_pipefd, reinterpret_cast<char*>(&task), sizeof(task), 0);
 	if (send_n == -1) {
 		core::unix_error("Run parent send error");
 		return -1;

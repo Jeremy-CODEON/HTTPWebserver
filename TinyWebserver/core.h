@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
+#include <netinet/in.h>
 #include <string.h>
 #include <signal.h>
 #include <assert.h>
@@ -64,6 +66,11 @@ namespace core {
 	constexpr unsigned long IO_BUFFERSIZE = 120;
 
 	/*
+	* @brief IO读取一行的最大字节
+	*/
+	constexpr unsigned int MAX_LINE = 8192;
+
+	/*
 	* @brief 最大进程池大小
 	*/
 	constexpr unsigned int MAX_PROCESS_NUMBER = 8;
@@ -82,6 +89,11 @@ namespace core {
 	* @brief 最大线程池可处理任务数量
 	*/
 	constexpr unsigned int MAX_TASK_NUMBER = 16;
+
+	/*
+	* @brief 最大监听数
+	*/
+	constexpr unsigned int MAX_LISTENQ = 1024;
 
 	/*
 	* @brief epoll工具类
@@ -112,13 +124,38 @@ namespace core {
 	* @brief signal工具类
 	*/
 	class SignalUtils {
+	private:
+		int epollfd;  /*epoll内核事件表*/
+
 	public:
+		// TODO: sig_pipefd有被覆盖的风险（应该是单进程唯一，未实现单例模式）
+		static int sig_pipefd[2];  /*内核与进程的信号管道，内核[0]进程[1]*/		
+
+	private:
+		/*
+		* @brief 信号处理函数，必须是静态函数
+		* @param sig => 信号
+		*/
+		static void sig_handler(int sig);
+
 		/*
 		* @brief 为信号绑定信号处理函数
 		* @param sig => 信号
 		* @param handler => 信号处理函数
 		* @param restart => 是否重新调用被该信号终止的系统调用
 		*/
-		static void sig_add_handler(int sig, void(*handler)(int), bool restart = true);
+		void sig_add_handler(int sig, void(*handler)(int), bool restart = true);
+
+		/*
+		* @brief 信号初始化设置
+		*/
+		void sig_init();
+
+	public:
+		/*
+		* @brief 有参构造函数
+		* @param _fd => epoll事件表描述符
+		*/
+		SignalUtils(int _fd);
 	};
 }

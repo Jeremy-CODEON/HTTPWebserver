@@ -11,6 +11,10 @@ void core::user_error(char* msg)
 	throw UserException(msg);
 }
 
+/*
+* 以下是EpollUtils类实现
+*/
+
 int core::EpollUtils::set_nonblocking(int fd)
 {
 	// 获得旧选项
@@ -46,6 +50,23 @@ void core::EpollUtils::epoll_remove(int epollfd, int fd)
 	close(fd);
 }
 
+/* 
+* 以下是SignalUtils类实现
+*/
+
+int core::SignalUtils::sig_pipefd[2] = { -1, -1 };
+
+void core::SignalUtils::sig_handler(int sig)
+{
+	int save_errno = errno;
+	// 从内核发送给进程的消息就是要处理的信号，仅1字节
+	int msg = sig;
+	// 通过管道发送给进程
+	send(sig_pipefd[0], reinterpret_cast<char*>(&msg), 1, 0);
+	// 恢复错误信息
+	errno = save_errno;
+}
+
 void core::SignalUtils::sig_add_handler(int sig, void(*handler)(int), bool restart)
 {
 	struct sigaction sa;
@@ -64,4 +85,29 @@ void core::SignalUtils::sig_add_handler(int sig, void(*handler)(int), bool resta
 		core::unix_error("Signal add handler error");
 		exit(1);
 	}
+}
+
+void core::SignalUtils::sig_init()
+{
+	// 建立内核和进程的通信管道
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, sig_pipefd) == -1) {
+		core::unix_error("Run parent/child signal pipe create error");
+		exit(1);
+	}
+
+	// 设置内核写的管道描述符非阻塞
+	core::EpollUtils::set_nonblocking(sig_pipefd[0]);
+	// epoll监听进程读的管道描述符，统一事件源
+	core::EpollUtils::epoll_add(epollfd, sig_pipefd[1]);
+
+	// 为常见信号绑定信号处理函数
+	sig_add_handler(SIGCHLD, sig_handler);
+	sig_add_handler(SIGTERM, sig_handler);
+	sig_add_handler(SIGINT, sig_handler);
+	sig_add_handler(SIGPIPE, sig_handler);
+}
+
+core::SignalUtils::SignalUtils(int _fd) :epollfd(_fd)
+{
+	sig_init();
 }

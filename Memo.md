@@ -14,6 +14,10 @@
 - `std::string`在`<string>`中，注意不带`.h`；
 - `socketpair`：
   - 参考：https://blog.csdn.net/y396397735/article/details/50684558；
+- `setsockopt`：
+  - 参考：https://www.cnblogs.com/felove2013/articles/4087511.html；
+- `struct sockaddr_in`在`<netinet/in.h>`中；
+  - 参考：https://blog.csdn.net/u010921682/article/details/79716540；
 
 
 
@@ -239,6 +243,42 @@ class B; //前向引用声明B
 
 
 
+### 20. C常用函数说明
+
+```c++
+// 将str2拷贝到str1
+// 返回空
+strcpy(str1, str2);
+
+// 判断str1中是否含str2
+// 返回第一个匹配字母指针
+strstr(str1, str2);
+
+// 将str2追加到str1末尾
+// 返回空
+strcat(str1, str2);
+
+// 从str中按照format格式读入到变量中，用于解析str
+int sscanf(const char *str, const char *format, ...);
+// 一个例子如下：
+strcpy( dtm, "Saturday March 25 1989" );
+sscanf( dtm, "%s %s %d  %d", weekday, month, &day, &year );
+
+// 用忽略大小写比较字符串str1和str2
+// 相同返回0
+strcasecmp(str1, str2);
+
+// 将file_name的文件状态复制到buf中
+// 成功返回0，失败返回-1
+int stat(const char * file_name, struct stat *buf);
+
+// 设置当前进程的环境变量name: value
+// 成功返回0，错误返回-1
+int setenv(const char *name,const char * value,int overwrite);
+```
+
+
+
 ## 注释规范
 
 - 用的是doxygen注解规范；
@@ -272,9 +312,42 @@ class B; //前向引用声明B
 ## 线程池设计
 
 - thread类的使用：https://fulin.blog.csdn.net/article/details/115024585；
+
 - 线程池线程共享线程池变量：将线程池`this`传入线程函数；
   - 也就是说，线程可以看作是独立的一个隔离子模块；
   - 参考：https://blog.csdn.net/K_ZhJ18/article/details/128408525；
+  
 - Task类可以用基类指针实现多态；
+
   - 这样能够实现运行期绑定，在逻辑上更加优雅；
   - 整个线程池在运行期可以执行不同的任务类对象，只要它们都继承了统一的执行基类即可；
+
+  - **warning**：**这个实现是不行的**，因为Task无法通过值传递传到threadpool对象中，只能传指针，也就是说它的生命周期只有主线程的作用域内；
+  - Task对象（在栈上）很有可能被销毁或者覆盖，这样后续线程通过指针取到的内存也就不是之前的那块内存了；
+  - 神奇的是在复现这个猜想时，想通过正常压栈覆盖对象好像是做不到的，只能取地址然后精确覆盖，这样确实是会导致多线程取到同一个内容；
+
+- 只能用模板然后值传递，在队列中用值拷贝push，因为threadpool实例的生命周期是整个进程，这样能保证Task的内容有效；
+
+
+
+
+
+## 服务器设计
+
+- http请求如何到服务器进程？
+  - 只要服务器进程绑定了ip和端口，并设置ACCEPT监听该端口，则任何发送到该ip和端口的HTTP报文都会直接通过socket_fd被服务器进程读取到；
+  - 可以被读取到的内容是HTTP报文的全部内容，包括请求行、消息头和消息体；
+  - 同样，服务器发送给客户端的全部内容也是报文头
+- SIGPIPE信号：
+  - `SIGPIPE`产生的原因是这样的：如果一个 socket 在接收到了 RST packet 之后，程序仍然向这个 socket 写入数据，那么就会产生`SIGPIPE`信号。
+  - 如果客户端已经关闭但服务器仍尝试发送数据给客户端，从而引发Broken pipe异常，需要通过接收SIGPIPE信号来处理该异常，避免服务器终止；
+  - 参考：http://senlinzhan.github.io/2017/03/02/sigpipe/；
+- CGI服务器：
+  - 可以创建进程执行CGI程序作为动态内容的服务器；
+  - CGI程序是指满足CGI规范的程序：
+    - 通过环境变量选项传入参数；
+    - 可以由HTTP请求行调用和传参；
+    - 请求行中，参数和程序名称之间用"?"隔开，参数之间用"&"隔开；
+    - 输出给客户端的内容包括响应报文消息头和消息体；
+- 用谷歌浏览器进行测试的时候，谷歌浏览器似乎是会连续刷多一个请求，很容易就把服务器弄崩掉了，最好还是用postman测试，比较稳定；
+- 使用进程池服务器时，listen_fd的创建一定要在创建子进程前进行，否则子进程看不到打开的listen_fd；使用线程池服务器时，listen_fd的创建最好是在创建子线程前进行，这样比较统一，但非必要；
