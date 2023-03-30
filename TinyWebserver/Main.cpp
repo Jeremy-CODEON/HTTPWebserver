@@ -3,13 +3,15 @@
 #include "process_pool.h"
 #include "thread_pool.h"
 #include "web_server.h"
+#include "smart_pointer.h"
 
 #include <chrono>
+#include <iostream>
 
+#define SERVER
+
+#ifdef SERVER
 int main() {
-#if 0
-	printf("Hello world!\n");
-#endif
 
 #if 0
 	/*基本IO使用示例*/
@@ -120,61 +122,6 @@ int main() {
 
 	// 销毁子进程
 	//process_pool->destory();
-#endif
-
-#if 0
-	class A{};
-	std::shared_ptr<int> shared_null = nullptr;      // 可以将shared_ptr初始化为nullptr
-	std::unique_ptr<int> unique_null = nullptr;      // 可以将unique_ptr初始化为nullptr
-	//std::weak_ptr<int> weak_null = nullptr;        // 不能将weak_ptr初始化为nullptr
-
-	std::shared_ptr<int> shared_obj = std::make_shared<int>();             // 可以用new基本类型初始化shared_ptr（推荐）
-	//std::shared_ptr<int> shared_obj(new int);                            // 可以用new基本类型初始化shared_ptr
-	//std::shared_ptr<int> shared_obj = std::shared_ptr<int>(new int);           // 可以用new基本类型初始化shared_ptr（和上一个写法等价）
-	std::unique_ptr<int> unique_obj(new int);                              // 可以用new基本类型初始化unique_ptr
-	//std::unique_ptr<int> unique_obj = std::unique_ptr<int>(new int);           // 可以用new基本类型初始化unique_ptr（和上一个写法等价）
-	//std::weak_ptr<int> weak_obj(new int);                                // 不能用new基本类型初始化weak_ptr
-
-	std::shared_ptr<A> shared_A = std::make_shared<A>();                   // 可以用对象指针初始化shared_ptr（推荐）
-	//std::shared_ptr<A> shared_A(new A);                                  // 可以用对象指针初始化shared_ptr
-	//std::shared_ptr<A> shared_A = std::shared_ptr<A>(new A);             // 可以用对象指针初始化shared_ptr（和上一个写法等价）
-	std::unique_ptr<A> unique_A(new A);                                    // 可以用对象指针初始化unique_ptr
-	//std::unique_ptr<A> unique_A = std::unique_ptr<A>(new A);             // 可以用对象指针初始化unique_ptr（和上一个写法等价）
-	//std::weak_ptr<A> weak_A(new A);                                      // 不能用对象指针初始化weak_ptr
-
-	std::shared_ptr<int> shared_p1(shared_obj);                            // 可以用shared_ptr初始化shared_ptr
-	std::shared_ptr<int> shared_p2(std::move(unique_obj));                 // 可以用unique_ptr初始化shared_ptr，unique_ptr自动置空
-	std::unique_ptr<int> unique_p(std::move(unique_obj));                  // 只能用unique_ptr初始化unique_ptr
-	std::weak_ptr<int> weak_p1(shared_obj);                                // 可以用shared_ptr初始化weak_ptr
-	//std::weak_ptr<int> weak_p2(unique_obj);                              // 不能用unique_ptr初始化weak_ptr
-	std::weak_ptr<int> weak_p3(weak_p1);                                   // 可以用weak_ptr初始化weak_ptr
-	std::shared_ptr<int> shared_p3(weak_p1);                               // 可以用weak_ptr初始化shared_ptr
-
-
-	shared_null = shared_obj;                                              // 可以用shared_ptr赋值给shared_ptr
-	shared_null = std::move(unique_obj);                                   // 可以用unique_ptr赋值给shared_ptr，unique_ptr自动置空
-	//shared_null = weak_p1;                                               // 不能用weak_ptr赋值给shared_ptr
-	unique_null = std::move(unique_obj);                                   // 只能用unique_ptr赋值给unique_ptr，前一个unique_ptr自动置空
-	weak_p3 = shared_obj;                                                  // 可以用shared_ptr赋值给weak_ptr
-	//weak_p3 = std::move(unique_obj);                                     // 不能用unique_ptr赋值给weak_ptr
-	weak_p3 = weak_p1;                                                     // 可以用weak_ptr赋值给weak_ptr
-
-	shared_null = nullptr;                            // 可以将nullptr赋值给shared_ptr
-	unique_null = nullptr;                            // 可以将nullptr赋值给unique_ptr
-    //weak_p1 = nullptr;                              // 不能将nullptr赋值给weak_ptr
-
-	int num = 4;
-	std::shared_ptr<int> shared_int(&num);                              // 可以用普通指针初始化shared_ptr
-	std::unique_ptr<int> unique_int(&num);                              // 可以用普通指针初始化unique_ptr
-	//std::weak_ptr<int> weak_int(&num);                                // 不能用普通指针初始化weak_ptr
-	
-	//shared_null = &num;                                               // 不能直接将普通指针赋值给shared_ptr
-	//unique_null = &num;                                               // 不能直接将普通指针赋值给unique_ptr
-	//weak_p1 = &num;                                                   // 不能直接将普通指针赋值给weak_ptr
-
-	shared_null = std::make_shared<int>(num);                           // 可以将封装后的普通指针赋值给shared_ptr
-	unique_null = std::unique_ptr<int>(&num);                           // 可以将封装后的普通指针赋值给unique_ptr
-	//weak_p1 = std::weak_ptr<int>(&num);                               // 不能将封装后的普通指针赋值给weak_ptr
 #endif
 
 #if 0
@@ -456,7 +403,7 @@ int main() {
 	printf("main thread end.\n");
 #endif
 
-#if 1
+#if 0
 	/*用线程池实现的服务器示例*/
 
 	/*
@@ -574,10 +521,12 @@ int main() {
 						case SIGINT:  /*键盘中断，父进程终止*/
 						{
 							is_stop = true;
+							printf("SIGINT signal caught!\n");
 							break;
 						}
 						case SIGPIPE:
 						{
+							printf("SIGPIPE signal caught!\n");
 							break;
 						}
 						default:
@@ -783,5 +732,391 @@ int main() {
 
 #endif
 
+
+
 	return 0;
 }
+#endif
+
+#ifdef CLIENT
+#include <arpa/inet.h>
+
+/*压力测试程序*/
+
+void epoll_add(int epollfd, int fd)
+{
+	assert(epollfd != -1 && fd > 0);
+
+	epoll_event event;
+	event.data.fd = fd;
+	// 事件就绪条件为：数据可读且边缘触发
+	event.events = EPOLLOUT | EPOLLET | EPOLLERR;
+	// 将fd注册到epollfd上
+	epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
+	// 设置进程监听的文件描述符非阻塞
+	core::EpollUtils::set_nonblocking(fd);
+}
+
+std::mutex epoll_mutex;
+
+/*
+* @brief 向服务器发起num个TCP连接
+*/
+void start_conn(int epoll_fd, int num, const char* ip, int port)
+{
+	struct sockaddr_in address;
+	bzero(&address, sizeof(address));
+	address.sin_family = AF_INET;  /*协议类型*/
+	inet_pton(AF_INET, ip, &address.sin_addr);  /*ip地址*/
+	address.sin_port = htons(port);  /*端口*/
+
+	for (int i = 0; i < num; ++i) {
+		sleep(1);
+		int sockfd = socket(PF_INET, SOCK_STREAM, 0);		
+		if (sockfd < 0) {
+
+		}
+		else {
+			printf("create 1 socket\n");
+		}
+
+		if (connect(sockfd, (struct sockaddr*)&address, sizeof(address)) == 0) {
+			std::unique_lock<std::mutex> lock(epoll_mutex);
+			printf("build connection %d\n", i);			
+			epoll_add(epoll_fd, sockfd);
+		}
+		else {
+			printf("build connection error: %d\n", i);
+		}
+	}
+}
+
+void close_conn(int epoll_fd, int sockfd) {
+	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, sockfd, 0);
+	close(sockfd);
+}
+
+int main(int argc, char* argv[]) 
+{
+	std::string request_line = "GET /home.html HTTP/1.1\r\n";
+	std::string request_head = "Connection: keep-alive\r\n\r\n";
+	std::string request_body = "";
+	std::string request = request_line + request_head + request_body;
+
+	assert(argc == 4);
+	int epoll_fd = epoll_create(100);
+	std::thread *connect_thread = new std::thread [atoi(argv[3])];
+	for (int i = 0; i < 30; ++i) {
+		connect_thread[i] = std::thread ([=]() {
+			start_conn(epoll_fd, 20, argv[1], atoi(argv[2]));
+			});
+	}
+
+	epoll_event events[10000];
+	char buffer[2048];
+	while (1) {
+		int fds = epoll_wait(epoll_fd, events, 10000, 2000);
+		for (int i = 0; i < fds; ++i) {
+			printf("another epoll event list handling...\n");
+			int sockfd = events[i].data.fd;
+			if (events[i].events & EPOLLIN) {
+				// 可读
+				if (BaseIO::read_n(sockfd, buffer, 2048) <= 0) {
+					close_conn(epoll_fd, sockfd);
+				}
+				printf("receive from server: %s\n", buffer);
+				struct epoll_event event;
+				event.events = EPOLLOUT | EPOLLET | EPOLLERR;
+				event.data.fd = sockfd;
+				epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sockfd, &event);
+			}
+			else if (events[i].events & EPOLLOUT) {
+				// 可写
+				sprintf(buffer, "%s", request.c_str());
+				printf("send to server: %s\n", buffer);
+				if (BaseIO::written_n(sockfd, buffer, sizeof(buffer)) <= 0) {
+					close_conn(epoll_fd, sockfd);
+				}
+				struct epoll_event event;
+				event.events = EPOLLIN | EPOLLET | EPOLLERR;
+				event.data.fd = sockfd;
+				epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sockfd, &event);
+			}
+			else if (events[i].events & EPOLLERR) {
+				printf("close sockfd %d\n", sockfd);
+				close_conn(epoll_fd, sockfd);
+			}
+		}
+	}
+
+	return 0;
+}
+
+#endif
+
+#ifdef OTHERS
+int main()
+{
+#if 0
+	printf("Hello world!\n");
+#endif
+
+#if 0
+	class A {};
+	std::shared_ptr<int> shared_null = nullptr;      // 可以将shared_ptr初始化为nullptr
+	std::unique_ptr<int> unique_null = nullptr;      // 可以将unique_ptr初始化为nullptr
+	//std::weak_ptr<int> weak_null = nullptr;        // 不能将weak_ptr初始化为nullptr
+
+	std::shared_ptr<int> shared_obj = std::make_shared<int>();             // 可以用new基本类型初始化shared_ptr（推荐）
+	//std::shared_ptr<int> shared_obj(new int);                            // 可以用new基本类型初始化shared_ptr
+	//std::shared_ptr<int> shared_obj = std::shared_ptr<int>(new int);           // 可以用new基本类型初始化shared_ptr（和上一个写法等价）
+	std::unique_ptr<int> unique_obj(new int);                              // 可以用new基本类型初始化unique_ptr
+	//std::unique_ptr<int> unique_obj = std::unique_ptr<int>(new int);           // 可以用new基本类型初始化unique_ptr（和上一个写法等价）
+	//std::weak_ptr<int> weak_obj(new int);                                // 不能用new基本类型初始化weak_ptr
+
+	std::shared_ptr<A> shared_A = std::make_shared<A>();                   // 可以用对象指针初始化shared_ptr（推荐）
+	//std::shared_ptr<A> shared_A(new A);                                  // 可以用对象指针初始化shared_ptr
+	//std::shared_ptr<A> shared_A = std::shared_ptr<A>(new A);             // 可以用对象指针初始化shared_ptr（和上一个写法等价）
+	std::unique_ptr<A> unique_A(new A);                                    // 可以用对象指针初始化unique_ptr
+	//std::unique_ptr<A> unique_A = std::unique_ptr<A>(new A);             // 可以用对象指针初始化unique_ptr（和上一个写法等价）
+	//std::weak_ptr<A> weak_A(new A);                                      // 不能用对象指针初始化weak_ptr
+
+	std::shared_ptr<int> shared_p1(shared_obj);                            // 可以用shared_ptr初始化shared_ptr
+	std::shared_ptr<int> shared_p2(std::move(unique_obj));                 // 可以用unique_ptr初始化shared_ptr，unique_ptr自动置空
+	std::unique_ptr<int> unique_p(std::move(unique_obj));                  // 只能用unique_ptr初始化unique_ptr
+	std::weak_ptr<int> weak_p1(shared_obj);                                // 可以用shared_ptr初始化weak_ptr
+	//std::weak_ptr<int> weak_p2(unique_obj);                              // 不能用unique_ptr初始化weak_ptr
+	std::weak_ptr<int> weak_p3(weak_p1);                                   // 可以用weak_ptr初始化weak_ptr
+	std::shared_ptr<int> shared_p3(weak_p1);                               // 可以用weak_ptr初始化shared_ptr
+
+
+	shared_null = shared_obj;                                              // 可以用shared_ptr赋值给shared_ptr
+	shared_null = std::move(unique_obj);                                   // 可以用unique_ptr赋值给shared_ptr，unique_ptr自动置空
+	//shared_null = weak_p1;                                               // 不能用weak_ptr赋值给shared_ptr
+	unique_null = std::move(unique_obj);                                   // 只能用unique_ptr赋值给unique_ptr，前一个unique_ptr自动置空
+	weak_p3 = shared_obj;                                                  // 可以用shared_ptr赋值给weak_ptr
+	//weak_p3 = std::move(unique_obj);                                     // 不能用unique_ptr赋值给weak_ptr
+	weak_p3 = weak_p1;                                                     // 可以用weak_ptr赋值给weak_ptr
+
+	shared_null = nullptr;                            // 可以将nullptr赋值给shared_ptr
+	unique_null = nullptr;                            // 可以将nullptr赋值给unique_ptr
+	//weak_p1 = nullptr;                              // 不能将nullptr赋值给weak_ptr
+
+	int num = 4;
+	std::shared_ptr<int> shared_int(&num);                              // 可以用普通指针初始化shared_ptr
+	std::unique_ptr<int> unique_int(&num);                              // 可以用普通指针初始化unique_ptr
+	//std::weak_ptr<int> weak_int(&num);                                // 不能用普通指针初始化weak_ptr
+
+	//shared_null = &num;                                               // 不能直接将普通指针赋值给shared_ptr
+	//unique_null = &num;                                               // 不能直接将普通指针赋值给unique_ptr
+	//weak_p1 = &num;                                                   // 不能直接将普通指针赋值给weak_ptr
+
+	shared_null = std::make_shared<int>(num);                           // 可以将封装后的普通指针赋值给shared_ptr
+	unique_null = std::unique_ptr<int>(&num);                           // 可以将封装后的普通指针赋值给unique_ptr
+	//weak_p1 = std::weak_ptr<int>(&num);                               // 不能将封装后的普通指针赋值给weak_ptr
+#endif
+
+#if 0
+	/*void func1(const int& _a) {
+		printf("left ref\n");
+	};
+
+	void func1(const int&& _a)
+	{
+		printf("right ref\n");
+	}
+
+	void func2(const int& _a) {
+		printf("left ref transmit\n");
+		func1(_a);
+	};
+
+	void func2(const int&& _a)
+	{
+		printf("right ref transmit\n");
+		func1(_a);
+	}*/
+
+	/*int a = 4;
+	func1(a);
+	func1(std::move(a));
+	func2(a);
+	func2(std::move(a));*/
+
+	//int a = 4;
+	//int b = std::move(a);
+	//printf("a = %d\n", a);
+	//printf("b = %d\n", b);
+
+	/*std::string str1 = "hello";
+	std::string str2 = std::move(str1);
+	printf("str1 = %s\n", str1.c_str());
+	printf("str2 = %s\n", str2.c_str());*/
+
+	//int arr1[5] = {1, 2, 3, 4, 5};
+	//int *arr2 = std::move(arr1);
+	//printf("a = %d\n", arr1[0]);
+	//printf("b = %d\n", arr2[0]);
+
+	class A {
+	public:
+		char* ptr;
+		int val;
+		std::string s;
+
+		A() :ptr("hello"), val(5), s("world") {};
+		A(const A& _a) {
+			// 拷贝语义
+			printf("copy constructor\n");
+			int _cnt = 0;
+			while (*(_a.ptr + _cnt) != '\0') {
+				_cnt++;
+			}
+			ptr = new char[_cnt + 1];
+			memcpy(ptr, _a.ptr, sizeof(char) * (_cnt + 1));
+			val = _a.val;
+			s = _a.s;
+		}
+		A(A&& _a) {
+			// 移动语义
+			printf("move constructor\n");
+			val = std::move(_a.val);
+			ptr = std::move(_a.ptr);
+			s = std::move(_a.s);
+			_a.val = 0;
+			_a.ptr = nullptr;
+		}
+		A& operator=(const A& _a) {
+			// 拷贝语义
+			printf("copy operator =\n");
+			int _cnt = 0;
+			while (*(_a.ptr + _cnt) != '\0') {
+				_cnt++;
+			}
+			ptr = new char[_cnt + 1];
+			memcpy(ptr, _a.ptr, sizeof(char) * (_cnt + 1));
+			val = _a.val;
+			s = _a.s;
+		}
+		A& operator=(A&& _a) {
+			// 移动语义
+			printf("move operator =\n");
+			val = std::move(_a.val);
+			ptr = std::move(_a.ptr);
+			s = std::move(_a.s);
+			_a.val = 0;
+			_a.ptr = nullptr;
+		}
+	};
+
+	A a;
+	printf("c: %s %s\n", a.ptr, a.s.c_str());
+	printf("a: %d\n", &a.ptr);
+
+	// 拷贝语义
+	A b(a);
+	printf("c: %s %s\n", b.ptr, b.s.c_str());
+	printf("b: %d\n", &b.ptr);
+
+	// 移动语义
+	A c(std::move(a));
+	printf("c: %s %s\n", c.ptr, c.s.c_str());
+	printf("c: %d\n", &c.ptr);
+
+	auto func = []() {
+		A tmp;
+		tmp.ptr = "hello again";
+		tmp.val = 10;
+		tmp.s = "new world";
+		return tmp;
+	};
+	A d;
+	// 移动语义
+	d = func();
+	printf("d: %s\n", d.ptr);
+	printf("d: %s\n", d.s.c_str());
+
+	A e;
+	// 移动语义
+	e = std::move(d);
+	printf("e: %s\n", e.ptr);
+	printf("e: %s\n", e.s.c_str());
+#endif
+
+#if 0
+	/*测试智能指针*/
+
+	/*普通测试*/
+	SharedPointer sptr1;
+	WeakPointer wptr1(sptr1);
+	if (true) {
+		SharedPointer sptr2(new ObjectTest(1));
+		wptr1 = sptr2;
+	}
+	
+	printf("here 1\n");
+	WeakPointer wptr2(wptr1);
+	printf("here 2\n");
+
+	UniquePointer uptr1(new ObjectTest(1));
+	std::cout << &uptr1 << std::endl;
+	printf("here 3\n");
+	UniquePointer uptr2 = std::move(uptr1);
+	std::cout << &uptr2 << std::endl;
+	printf("here 4\n");
+
+	ObjectTest* obj = new ObjectTest(5);
+	SharedPointer sptr3(obj);
+	printf("obj value: %d\n", sptr3->value);
+	wptr2 = sptr3;
+	printf("here 5\n");
+	sptr1 = wptr2.lock();
+	printf("obj value: %d\n", sptr1->value);
+	printf("here 6\n");
+
+	/*多线程测试*/
+	int thread_number = 20;
+	std::thread *t = new std::thread[thread_number];
+	/*auto t_process = [](UniquePointer &ptr, int i) {
+		UniquePointer ptr2 = std::move(ptr);
+		if (ptr2.get() != nullptr) {
+			printf("%d obj value: %d\n", i, ptr2->value);
+		}				
+	};
+	for (int i = 0; i < thread_number; ++i) {
+		t[i] = std::thread(t_process, std::ref(uptr2), i);
+	}*/
+	auto t_process = [](SharedPointer ptr, int i) {
+		WeakPointer ptr1 = ptr;
+		SharedPointer ptr2 = ptr1.lock();
+		printf("%d obj value: %d\n", i, ptr2->value);
+	};
+	for (int i = 0; i < thread_number; ++i) {
+		t[i] = std::thread(t_process, sptr3, i);
+	}
+	for (int i = 0; i < thread_number; ++i) {
+		t[i].join();
+	}
+
+	/*std智能指针*/
+
+	/*std::shared_ptr<ObjectTest> sptr1;
+	std::weak_ptr<ObjectTest> wptr1(sptr1);
+	if (true) {
+		std::shared_ptr<ObjectTest> sptr2(new ObjectTest(1));
+		wptr1 = sptr2;
+	}
+
+	printf("here 1\n");
+	std::weak_ptr<ObjectTest> wptr2(wptr1);
+	printf("here 2\n");
+
+	std::shared_ptr<ObjectTest> sptr3 = wptr2.lock();
+	printf("%d", sptr3->value);*/
+
+#endif
+
+	return 0;
+}
+
+#endif 

@@ -82,6 +82,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="process_pool.cpp" />
     <ClCompile Include="process_pool_test.cpp" />
+    <ClCompile Include="smart_pointer.cpp" />
     <ClCompile Include="thread_pool.cpp" />
     <ClCompile Include="thread_pool_test.cpp" />
     <ClCompile Include="web_server.cpp" />
@@ -92,11 +93,16 @@
     <ClInclude Include="base_io.h" />
     <ClInclude Include="process_pool.h" />
     <ClInclude Include="process_pool_test.h" />
+    <ClInclude Include="smart_pointer.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="thread_pool_test.h" />
     <ClInclude Include="web_server.h" />
   </ItemGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>

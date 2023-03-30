@@ -47,17 +47,17 @@ buffer_t* BufferIO::buffer_open(const char* filename, int flag, mode_t mode)
 	}
 	else {		
 		// 用位运算检验是否为只读或只写打开
-		if ((flag ^ O_RDONLY) == O_RDONLY) {
-			// 只读文件
-			bp = new buffer_t(fd, 1);
-		}
-		else if ((flag ^ O_WRONLY) == O_RDONLY) {
+		if ((flag & O_WRONLY) == O_WRONLY) {
 			// 只写文件
 			bp = new buffer_t(fd, 2);
 		}
+		else if ((flag & O_RDONLY) == O_RDONLY) {
+			// 只读文件，O_RDONLY = 00必须最后判断，因为条件一定成立
+			bp = new buffer_t(fd, 1);
+		}
 		else {
 			core::unix_error("Buffer open error");
-		}		
+		}
 	}
 	return bp;
 }

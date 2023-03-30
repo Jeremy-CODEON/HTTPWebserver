@@ -74,7 +74,7 @@ void WebServerUtils::client_error(int fd, std::string cause, std::string errnum,
 	respond_body += "<hr><em>The Tiny Web Server.</em>\r\n";
 
 	// 输出HTTP响应报文状态行到客户端
-	sprintf(buffer, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
+	sprintf(buffer, "HTTP/1.0 %s %s\r\n", errnum.c_str(), shortmsg.c_str());
 	BaseIO::written_n(fd, buffer, strlen(buffer));
 	// 输出HTTP响应报文消息头到客户端
 	sprintf(buffer, "Content-type: text/html\r\n");
@@ -92,16 +92,19 @@ void WebServerUtils::read_request_head(buffer_t* bp)
 
 	// 仅读入请求报文消息头
 	BufferIO::buffer_read_line(bp, buffer, core::MAX_LINE);
+	printf("buffer: %s\n", buffer);
 	while (strcmp(buffer, "\r\n")) {
 #ifdef DEBUG
 		printf("waiting request head...\n");
 #endif // DEBUG
 		BufferIO::buffer_read_line(bp, buffer, core::MAX_LINE);
 #ifdef DEBUG
+		printf("buffer: %s\n", buffer);
 		printf("getting request head...\n");
 #endif // DEBUG
 
 	}
+	printf("read request head end\n");
 
 	return;
 }
@@ -219,6 +222,7 @@ void WebServerUtils::doit(int fd)
 	BufferIO::buffer_read_line(&in_b, buffer, core::MAX_LINE);
 #ifdef DEBUG
 	printf("request head: %s\n", buffer);
+	printf("request buffer: %s\n", in_b.buffer_ptr);
 #endif // DEBUG
 
 	// 解析HTTP请求行

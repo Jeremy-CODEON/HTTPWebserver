@@ -85,6 +85,10 @@ void core::SignalUtils::sig_add_handler(int sig, void(*handler)(int), bool resta
 		core::unix_error("Signal add handler error");
 		exit(1);
 	}
+#ifdef DEBUG
+	//printf("signal set successfully!\n");
+#endif // DEBUG
+
 }
 
 void core::SignalUtils::sig_init()
