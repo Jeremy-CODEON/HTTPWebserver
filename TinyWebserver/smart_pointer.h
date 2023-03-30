@@ -112,6 +112,7 @@ class SharedPointer
 private:
 	ObjectTest* _pobject;  /*共享对象指针*/
 	AtomicCount* _pcount;  /*指向原子代理块*/
+	std::mutex self_mutex;  /*自身互斥量*/
 
 	// 声明弱指针友元类
 	friend class WeakPointer;  
@@ -201,7 +202,9 @@ public:
 	* @param sptr => 共享指针
 	*/
 	SharedPointer& operator=(const SharedPointer& sptr) {
-		if (_pobject != sptr._pobject) {
+		// 修改指向需要竞争自身锁
+		std::unique_lock<std::mutex> self_guard(self_mutex);
+		if (_pobject != sptr._pobject) {			
 			// 减少计数引用
 			release_ref();
 			// 指向新资源
@@ -231,9 +234,31 @@ public:
 	/*
 	* @brief 获取共享引用数
 	*/
-	int use_count() const {
+	int use_count() {
+		// 查看引用计数也需要竞争自身锁
+		std::unique_lock<std::mutex> self_guard(self_mutex);
 		return _pcount->get_shared_count();
 	}
+
+	/*
+	* @brief 判断是否为空
+	*/
+	bool is_empty() const {
+		return (_pobject == nullptr);
+	}
+
+	/*
+	* @brief 获取共享引用数
+	*/
+	//void reset() {
+	//	printf("reset starts.\n");
+	//	// 修改指向需要竞争自身锁
+	//	std::unique_lock<std::mutex> self_guard(self_mutex);
+	//	release_ref();
+	//	_pobject = nullptr;
+	//	_pcount = new AtomicCount();
+	//	printf("reset ends.\n");
+	//}
 
 };
 
@@ -246,6 +271,7 @@ class UniquePointer
 private:
 	ObjectTest* _pobject;  /*独占对象指针*/
 	AtomicCount* _pcount;  /*指向原子代理块*/
+	std::mutex self_mutex;  /*自身互斥量*/
 
 	// 声明共享指针友元类
 	friend class SharedPointer;
@@ -322,7 +348,9 @@ public:
 	* @param uptr => 独占指针
 	*/
 	UniquePointer& operator=(UniquePointer&& uptr) {
-		if (_pobject != uptr._pobject) {
+		// 修改指向需要竞争自身锁
+		std::unique_lock<std::mutex> self_guard(self_mutex);
+		if (_pobject != uptr._pobject) {			
 			// 释放旧资源
 			release_ref();
 			// 竞争锁转移
@@ -352,13 +380,13 @@ public:
 		return _pobject;
 	}
 
+public:
 	/*
 	* @brief 判断是否为空
 	*/
 	bool is_empty() const {
 		return (_pobject == nullptr);
-	}
-	
+	}	
 };
 
 /*
@@ -369,6 +397,7 @@ class WeakPointer
 private:
 	ObjectTest* _pobject;  /*共享对象指针，无法直接返回，只能给共享指针构造*/
 	AtomicCount* _pcount;  /*指向原子代理块*/
+	std::mutex self_mutex;  /*自身互斥量*/
 
 	// 声明共享指针友元类
 	friend class SharedPointer;
@@ -435,7 +464,9 @@ public:
 	* @brief 从共享指针赋值
 	*/
 	WeakPointer& operator=(const SharedPointer& sptr) {
-		if (_pobject != sptr._pobject) {
+		// 修改指向需要竞争自身锁
+		std::unique_lock<std::mutex> self_guard(self_mutex);
+		if (_pobject != sptr._pobject) {			
 			// 释放引用计数
 			release_ref();
 			_pobject = sptr._pobject;
@@ -451,7 +482,9 @@ public:
 	* @brief 从弱指针赋值
 	*/
 	WeakPointer& operator=(const WeakPointer& wptr) {
-		if (_pobject != wptr._pobject) {
+		// 修改指向需要竞争自身锁
+		std::unique_lock<std::mutex> self_guard(self_mutex);
+		if (_pobject != wptr._pobject) {			
 			// 释放引用计数
 			release_ref();
 			_pobject = wptr._pobject;
@@ -462,6 +495,10 @@ public:
 		return *this;
 	}
 
+public:
+	/*
+	* @brief 返回指向对象的共享指针
+	*/
 	SharedPointer lock() {
 		if (_pcount == nullptr || _pcount->get_shared_count() == 0) {
 			SharedPointer tmp(nullptr);
@@ -470,6 +507,15 @@ public:
 		else {
 			return SharedPointer(*this);
 		}
+	}
+
+	/*
+	* @brief 获取弱引用数
+	*/
+	int use_count() {
+		// 查看引用计数也需要竞争自身锁
+		std::unique_lock<std::mutex> self_guard(self_mutex);
+		return _pcount->get_weak_count();
 	}
 };
 

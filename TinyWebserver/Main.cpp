@@ -1075,9 +1075,9 @@ int main()
 	printf("here 6\n");
 
 	/*¶àÏß³Ì²âÊÔ*/
-	int thread_number = 20;
+	int thread_number = 10000;
 	std::thread *t = new std::thread[thread_number];
-	auto t_process = [](UniquePointer &ptr, int i) {
+	/*auto t_process = [](UniquePointer &ptr, int i) {
 		UniquePointer ptr2 = std::move(ptr);
 		if (!ptr2.is_empty()) {
 			printf("%d obj value: %d\n", i, ptr2->value);
@@ -1085,15 +1085,23 @@ int main()
 	};
 	for (int i = 0; i < thread_number; ++i) {
 		t[i] = std::thread(t_process, std::ref(uptr2), i);
-	}
-	/*auto t_process = [](SharedPointer ptr, int i) {
+	}*/
+	auto t_process = [](SharedPointer& ptr, int i) {
 		WeakPointer ptr1 = ptr;
 		SharedPointer ptr2 = ptr1.lock();
-		printf("%d obj value: %d\n", i, ptr2->value);
+		ptr2 = ptr;
+		printf("ptr2 user count: %d.\n", ptr2.use_count());
+		//ptr.reset();
+		ptr = SharedPointer(new ObjectTest(15));
+		printf("ptr user count: %d.\n", ptr.use_count());
+		if (!ptr.is_empty()) {
+			printf("%d obj value: %d\n", i, ptr->value);
+		}		
 	};
 	for (int i = 0; i < thread_number; ++i) {
-		t[i] = std::thread(t_process, sptr3, i);
-	}*/
+		printf("%d sptr3 user count: %d.\n", i, sptr3.use_count());
+		t[i] = std::thread(t_process, std::ref(sptr3), i);
+	}
 	for (int i = 0; i < thread_number; ++i) {
 		t[i].join();
 	}
