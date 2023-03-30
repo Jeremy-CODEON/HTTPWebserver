@@ -352,14 +352,12 @@ public:
 		return _pobject;
 	}
 
-#ifdef DEBUG
 	/*
 	* @brief ÅÐ¶ÏÊÇ·ñÎª¿Õ
 	*/
-	ObjectTest* get() const {
-		return _pobject;
+	bool is_empty() const {
+		return (_pobject == nullptr);
 	}
-#endif // DEBUG
 	
 };
 

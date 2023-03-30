@@ -8,7 +8,7 @@
 #include <chrono>
 #include <iostream>
 
-#define SERVER
+#define OTHERS
 
 #ifdef SERVER
 int main() {
@@ -1043,7 +1043,7 @@ int main()
 	printf("e: %s\n", e.s.c_str());
 #endif
 
-#if 0
+#if 1
 	/*测试智能指针*/
 
 	/*普通测试*/
@@ -1077,23 +1077,23 @@ int main()
 	/*多线程测试*/
 	int thread_number = 20;
 	std::thread *t = new std::thread[thread_number];
-	/*auto t_process = [](UniquePointer &ptr, int i) {
+	auto t_process = [](UniquePointer &ptr, int i) {
 		UniquePointer ptr2 = std::move(ptr);
-		if (ptr2.get() != nullptr) {
+		if (!ptr2.is_empty()) {
 			printf("%d obj value: %d\n", i, ptr2->value);
-		}				
+		}
 	};
 	for (int i = 0; i < thread_number; ++i) {
 		t[i] = std::thread(t_process, std::ref(uptr2), i);
-	}*/
-	auto t_process = [](SharedPointer ptr, int i) {
+	}
+	/*auto t_process = [](SharedPointer ptr, int i) {
 		WeakPointer ptr1 = ptr;
 		SharedPointer ptr2 = ptr1.lock();
 		printf("%d obj value: %d\n", i, ptr2->value);
 	};
 	for (int i = 0; i < thread_number; ++i) {
 		t[i] = std::thread(t_process, sptr3, i);
-	}
+	}*/
 	for (int i = 0; i < thread_number; ++i) {
 		t[i].join();
 	}
