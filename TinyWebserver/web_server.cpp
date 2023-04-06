@@ -206,7 +206,7 @@ void WebServerUtils::serve_dynamic(int fd, std::string filename, std::string cgi
 	return;
 }
 
-void WebServerUtils::doit(int fd)
+int WebServerUtils::doit(int fd)
 {
 	char buffer[core::MAX_LINE];  /*读缓冲区*/
 	char method[core::MAX_LINE];  /*HTTP方法*/
@@ -219,7 +219,9 @@ void WebServerUtils::doit(int fd)
 	buffer_t in_b(fd, 1);  /*封装fd读缓冲对象*/
 
 	// 从fd中读入HTTP请求行
-	BufferIO::buffer_read_line(&in_b, buffer, core::MAX_LINE);
+	if (BufferIO::buffer_read_line(&in_b, buffer, core::MAX_LINE) <= 0) {
+		return -1;
+	}
 #ifdef DEBUG
 	printf("request head: %s\n", buffer);
 	printf("request buffer: %s\n", in_b.buffer_ptr);
@@ -231,7 +233,7 @@ void WebServerUtils::doit(int fd)
 		// 不是GET请求
 		client_error(fd, method, "501", 
 			"Not Implemented", "Tiny does not implement this method");
-		return;
+		return 0;
 	}
 	// 读入HTTP请求报文消息头
 	//read_request_head(&in_b);
@@ -250,7 +252,7 @@ void WebServerUtils::doit(int fd)
 		// 获取文件状态失败，也就是无此文件
 		client_error(fd, filename, "404", "Not found",
 			"Tiny couldn't find this file");
-		return;
+		return 0;
 	}
 
 	if (is_static) {
@@ -258,7 +260,7 @@ void WebServerUtils::doit(int fd)
 			// S_ISREG是否是一个常规文件，S_IRUSR是否能读这个文件
 			client_error(fd, filename, "403", "Forbidden",
 				"Tiny couldn't read the file");
-			return;
+			return 0;
 		}
 		// 向客户端发送静态文件
 		serve_static(fd, filename, stat_buffer.st_size);
@@ -268,10 +270,11 @@ void WebServerUtils::doit(int fd)
 			// S_ISREG是否是一个常规文件，S_IXUSR是否能执行这个文件
 			client_error(fd, filename, "403", "Forbidden",
 				"Tiny couldn't run the CGI program");
-			return;
+			return 0;
 		}
 		serve_dynamic(fd, filename, cgi_args.c_str());
 	}
+	return 0;
 }
 
 int WebServerUtils::open_listenfd(int port)

@@ -326,6 +326,48 @@ WeakPointer wptr(WeakPointer());
 
 
 
+### 23. 类内调用其他对象的私有成员
+
+- 如果该对象是同类的实例化，则可以直接调用；
+  - 因为封装的不可见性是对外而言的；
+- 如果该对象是不同类的实例化，则不可以直接调用；
+  - 但可以通过在对方类中声明自己类为友元类而调用；
+
+
+
+### 24. epoll监听事件
+
+- 除了EPOLLHUP和EPOLLERR外，其他event_type均需要添加到events中才能被监听；
+  - 包括EPOLLRDHUP（但要求Linux内核高于一定版本才能使用）；
+  - 参考：https://man7.org/linux/man-pages/man2/epoll_ctl.2.html；
+- 一端执行`close()`或者进程终止，另一端能收到的消息是：
+  - 如果注册了EPOLLRDHUP，则8221 = 8192 + 29；
+  - 如果没有注册EPOLLRDHUP，则29 = 16 + 8 + 4 +1；
+    - 也就是EPOLLHUP和EPOLLERR被触发；
+  - 如果正在读写，则含EPOLLIN的5，此时必有`read()==0`；
+  - 或者含EPOLLERR的8的13，如：
+    - Bad file descriptor，此时必有`read()==-1`；
+  - 总之：
+    - 如果`EPOLLHUP | EPOLLERR`则关闭；
+    - 在读中，如果返回<=0则关闭；
+    - 在写中，如果返回<=0则关闭；
+      - 非必要，因为此时一定会有`EPOLLHUP | EPOLLERR`；
+- 关于socket_fd的一些注意：
+  - fd从4开始；
+  - 一旦调用了close(fd)，该fd就会被回收，下次分配就可以重新分配；
+    - 因此一旦close，就不要再尝试重复close或者读写了；
+    - 这样有可能写到另一个fd上，或者引发Bad file descriptor；
+- 各个事件处理的排列顺序：
+  - 不要用if...else if...结构，用if...if...结构；
+    - 因为一个事件可能包含多种类型的事件常量，需要分别处理；
+  - 先处理读写的操作；
+    - 即EPOLLIN和EPOLLOUT；
+  - 再处理异常或者关闭的情况；
+    - 即EPOLLERR | EPOLLHUP | EPOLLRDHUP；
+    - 它们可以合在一个if中处理；
+
+
+
 ## 注释规范
 
 - 用的是doxygen注解规范；
@@ -404,6 +446,41 @@ WeakPointer wptr(WeakPointer());
 - 使用进程池服务器时，listen_fd的创建一定要在创建子进程前进行，否则子进程看不到打开的listen_fd；使用线程池服务器时，listen_fd的创建最好是在创建子线程前进行，这样比较统一，但非必要；
 
 - 手动发送请求行字符串时，注意URL不要加上**ip地址和端口**，实际的请求行是会自动隐去这两个信息的，因为这些信息并不是在HTTP应用上使用；
+
+- 服务器可以接受客户端的信息也可以主动发送：
+
+  - 并不受HTTP 1.1的限制；
+    - 因为HTTP1.1只是一个协议，服务器是否完全按照该协议实现则不一定；
+    - 比如长连接和短连接之类的；
+    - 感觉HTTP协议更多是限制客户端的实现吧，服务器其实还是可以做得更加强大的，比如兼容各种协议；
+
+  - 也不受TCP或者UDP的限制；
+    - 可以用`int sockfd = socket(AF_INET, SOCK_DGRAM, 0);`使用UDP发送数据；
+    - 也就是说，socket是一个传输层API，至于应用层上如何解析和封装，可以由程序员自行决定，因此可以实现HTTP任意版本协议的服务器，也可以实现非HTTP协议的自定义协议的服务器（如RPC）；
+    - 这其实是相当大的一个自由度；
+
+- 主从Reactor的设计：
+
+  - 用两个epoll_fd：
+    - 一个负责处理信号和listenfd；
+    - 一个负责处理connectfd；
+  - sub_reactor的epoll_wait不需要加锁，epoll系列函数均是线程安全的；
+
+- 定时器设计：
+
+  - 如果访问了，则将{expire_time: fd}压入堆中，同时记录hash_map[fd]+=1；
+  - 超时，则将所有超时的堆中记录出堆并记录hash_map[fd]-=1；
+  - 如果hash_map[fd] == 0，则关闭该连接；
+
+  - 定时器的超时检测：
+    - 只需要和堆顶元素比较即可；
+    - 如果堆顶元素超时，则循环处理出堆，直至堆顶元素不超时；
+    - 注意堆为空的情况；
+    - 只在处理完一次epoll_wait的所有事件或者epoll_wait超时时才执行；
+  - 如果是要用时间轮的方式实现，则可以考虑搭配shared_ptr来完成计数；
+  - 在main_reactor和sub_reactor中定时：
+    - 采用的是单例模式实现；
+    - 注意多线程读写需要加锁；
 
 
 

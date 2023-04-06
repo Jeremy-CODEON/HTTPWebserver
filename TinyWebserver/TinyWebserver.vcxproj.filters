@@ -11,6 +11,9 @@
     <ClCompile Include="web_server.cpp" />
     <ClCompile Include="thread_pool_test.cpp" />
     <ClCompile Include="smart_pointer.cpp" />
+    <ClCompile Include="rpc.cpp" />
+    <ClCompile Include="Main_test.cpp" />
+    <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base_io.h" />
@@ -22,5 +25,7 @@
     <ClInclude Include="web_server.h" />
     <ClInclude Include="thread_pool_test.h" />
     <ClInclude Include="smart_pointer.h" />
+    <ClInclude Include="rpc.h" />
+    <ClInclude Include="timer.h" />
   </ItemGroup>
 </Project>

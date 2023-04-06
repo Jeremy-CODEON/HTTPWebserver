@@ -55,8 +55,10 @@ public:
 	/*
 	* @brief 处理客户端的一个HTTP事务请求
 	* @param
+	* @retval 0 => 读取成功
+	* @retval -1 => 读取失败，需要关闭连接
 	*/
-	static void doit(int fd);
+	static int doit(int fd);
 
 	/* 
 	* @brief 打开一个监听某个端口的socket

@@ -19,6 +19,7 @@
 
 #include <string>
 #include <queue>
+#include <unordered_map>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -94,6 +95,11 @@ namespace core {
 	* @brief 最大监听数
 	*/
 	constexpr unsigned int MAX_LISTENQ = 1024;
+
+	/*
+	* @brief 定时器超时时间
+	*/
+	constexpr int EXPIRED_TIME = 5;
 
 	/*
 	* @brief epoll工具类

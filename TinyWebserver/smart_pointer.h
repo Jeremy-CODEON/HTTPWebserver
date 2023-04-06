@@ -519,19 +519,19 @@ public:
 	}
 };
 
-SharedPointer::SharedPointer(UniquePointer&& uptr){
-	// 竞争锁转移
-	std::lock_guard<std::mutex> guard(uptr._pcount->get_mutex());
-	// 指向新资源
-	_pobject = uptr._pobject;
-	_pcount = uptr._pcount;
-	// 将前一个独占指针置空
-	uptr._pobject = nullptr;
-	uptr._pcount = nullptr;
-}
-
-SharedPointer::SharedPointer(const WeakPointer& wptr) :
-	_pobject(wptr._pobject), _pcount(wptr._pcount) {
-	// 增加计数引用
-	add_ref();
-}
+//SharedPointer::SharedPointer(UniquePointer&& uptr){
+//	// 竞争锁转移
+//	std::lock_guard<std::mutex> guard(uptr._pcount->get_mutex());
+//	// 指向新资源
+//	_pobject = uptr._pobject;
+//	_pcount = uptr._pcount;
+//	// 将前一个独占指针置空
+//	uptr._pobject = nullptr;
+//	uptr._pcount = nullptr;
+//}
+//
+//SharedPointer::SharedPointer(const WeakPointer& wptr) :
+//	_pobject(wptr._pobject), _pcount(wptr._pcount) {
+//	// 增加计数引用
+//	add_ref();
+//}
