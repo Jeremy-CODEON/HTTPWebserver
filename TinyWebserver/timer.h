@@ -76,10 +76,9 @@ public:
 		std::unique_lock<std::mutex> guard(mutex); 
 		TimerRecord timer = heap.top();
 		// 获取当前系统时间
-		time_t cur_time = time(NULL); 
+		time_t cur_time = time(NULL); 	
 		while (!heap.empty() && timer.expired_time < cur_time) {
 			// 已超时
-			
 			heap.pop();
 			map[timer.fd]--;
 			
