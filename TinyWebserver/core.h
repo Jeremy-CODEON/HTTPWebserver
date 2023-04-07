@@ -20,6 +20,7 @@
 #include <string>
 #include <queue>
 #include <unordered_map>
+#include <list>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -99,7 +100,7 @@ namespace core {
 	/*
 	* @brief 定时器超时时间
 	*/
-	constexpr int EXPIRED_TIME = 5;
+	constexpr int EXPIRED_TIME = 10;
 
 	/*
 	* @brief epoll工具类

@@ -27,5 +27,7 @@
     <ClInclude Include="smart_pointer.h" />
     <ClInclude Include="rpc.h" />
     <ClInclude Include="timer.h" />
+    <ClInclude Include="include\nlohmann\json.hpp" />
+    <ClInclude Include="include\nlohmann\json_fwd.hpp" />
   </ItemGroup>
 </Project>

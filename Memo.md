@@ -1,7 +1,7 @@
 ## 线程相关
 
 - 静态构造函数是线程安全的，其余的静态成员函数不是线程安全的；
-- 系统调用函数是线程安全的；
+- 大部分系统调用函数是线程安全的；
 
 
 
@@ -352,6 +352,8 @@ WeakPointer wptr(WeakPointer());
     - 在读中，如果返回<=0则关闭；
     - 在写中，如果返回<=0则关闭；
       - 非必要，因为此时一定会有`EPOLLHUP | EPOLLERR`；
+  - 另可参考：
+    - https://blog.csdn.net/effort_study/article/details/119577307；
 - 关于socket_fd的一些注意：
   - fd从4开始；
   - 一旦调用了close(fd)，该fd就会被回收，下次分配就可以重新分配；
@@ -381,6 +383,21 @@ WeakPointer wptr(WeakPointer());
 ### 1. DEBUG宏注释
 
 - 参考：https://blog.csdn.net/Qidi_Huang/article/details/50405639；
+
+
+
+## VS错误相关
+
+### 1. “ValidateSources”任务返回了 false，但未记录错误。
+
+- 原因：
+  - 某些文件已经移动删除了，但仍记录在解决方案中；
+  - 解决方案无法找到该文件，在远程复制到Linux前就会报错；
+- 解决方法：
+  - 在项目的**解决方案资源管理器**中关闭**显示所有文件**；
+  - 逐个核查当前项目中的.h和.cpp文件，看它们是否可用；
+    - 如果不可用，则需要将它们从项目中移除；
+  - 全部移除后即可编译通过；
 
 
 
@@ -468,17 +485,33 @@ WeakPointer wptr(WeakPointer());
 
 - 定时器设计：
 
-  - 如果访问了，则将{expire_time: fd}压入堆中，同时记录hash_map[fd]+=1；
-  - 超时，则将所有超时的堆中记录出堆并记录hash_map[fd]-=1；
-  - 如果hash_map[fd] == 0，则关闭该连接；
+  - **小顶堆+计数哈希表**的实现方案：
 
-  - 定时器的超时检测：
-    - 只需要和堆顶元素比较即可；
-    - 如果堆顶元素超时，则循环处理出堆，直至堆顶元素不超时；
-    - 注意堆为空的情况；
-    - 只在处理完一次epoll_wait的所有事件或者epoll_wait超时时才执行；
+    - 如果访问了，则将{expire_time: fd}压入堆中，同时记录hash_map[fd]+=1；
+    - 超时，则将所有超时的堆中记录出堆并记录hash_map[fd]-=1；
+    - 如果hash_map[fd] == 0，则关闭该连接；
+
+    - 定时器的超时检测：
+      - 只需要和堆顶元素比较即可；
+      - 如果堆顶元素超时，则循环处理出堆，直至堆顶元素不超时；
+      - 注意堆为空的情况；
+      - 只在处理完一次epoll_wait的所有事件或者epoll_wait超时时才执行；
+
+  - 双向链表+指向哈希表的实现方案：
+
+    - 如果访问了，
+      - 如果哈希表中没有记录（或者记录无效），则将{expire_time: fd}插入到链表尾，同时用hash_map[fd]记录节点指向；
+      - 如果哈希表中有记录，则先删除该记录，再将{expire_time: fd}插入到链表尾，同时用hash_map[fd]记录节点指向；
+    - 定时器的超时检测：
+      - 直接检查链表头节点；
+      - 如果头节点超时，则一直循环处理直到头节点不超时；
+      - 注意链表为空的情况；
+      - 只在处理完一次epoll_wait的所有事件或者epoll_wait超时时才执行；
+
   - 如果是要用时间轮的方式实现，则可以考虑搭配shared_ptr来完成计数；
+
   - 在main_reactor和sub_reactor中定时：
+
     - 采用的是单例模式实现；
     - 注意多线程读写需要加锁；
 
@@ -543,3 +576,34 @@ WeakPointer wptr(WeakPointer());
 
 - 参考：
   - https://github.com/tacgomes/smart-pointers；
+
+
+
+
+
+## RPC设计
+
+- 序列化和反序列化：
+  - 用JSON的字符串格式进行数据传输；
+  - 使用外部库：https://github.com/nlohmann/json；
+    - 只需要添加single_include中的`json.hpp`文件即可使用；
+    - 使用参考：
+      - https://www.cnblogs.com/linuxAndMcu/p/14503341.html；
+- 本地存根：
+  - 主要是进行序列化和反序列化；
+  - 客户端：
+    - 记录参数的类型；
+    - 记录参数的值；
+    - 记录方法的名称；
+  - 服务器端：
+    - 记录返回值的类型；
+    - 记录返回值的值；
+- 和HTTP服务的区分：
+  - 在JSON中包含RPC版本号作为关键字进行区分；
+
+
+
+## 压力测试设计
+
+- 目前是单线程的，所以：
+  - 可能接收缓冲区接收不过来，导致出现Read error: Resource temporarily unavailable错误而使得发送出错；

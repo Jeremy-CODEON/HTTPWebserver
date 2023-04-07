@@ -89,7 +89,7 @@ int main() {
 						}
 						if (events[i].events & (EPOLLERR | EPOLLHUP)) {
 							// 异常
-							printf("close sockfd %d\n", event_fd);
+							printf("ONE close sockfd %d, events %d\n", event_fd, events[i].events);
 							core::EpollUtils::epoll_remove(sub_epollfd, event_fd);  // 移除监听并关闭
 						}
 						if ((events[i].events & EPOLLIN) 
@@ -108,7 +108,7 @@ int main() {
 
 				// 处理客户端的请求
 				if (WebServerUtils::doit(process_fd) == -1) {
-					printf("close sockfd %d\n", process_fd);
+					printf("TWO close sockfd %d\n", process_fd);
 					core::EpollUtils::epoll_remove(sub_epollfd, process_fd);  // 移除监听并关闭
 				}
 			}
@@ -224,7 +224,7 @@ int main() {
 					return -1;
 				}
 				else {
-					printf("another connect is open.\n");
+					printf("another connect %d is open.\n", connect_fd);
 				}
 				// 将连接的fd放到sub_epollfd中监听
 				core::EpollUtils::epoll_add(sub_epollfd, connect_fd);
@@ -246,3 +246,36 @@ int main() {
 }
 #endif
 
+
+#ifdef OTHERS
+#include "include/nlohmann/json.hpp"
+
+using json = nlohmann::json;
+
+int main()
+{
+	json j; // 首先创建一个空的json对象
+	j["pi"] = 3.141;
+	j["happy"] = true;
+	j["name"] = "Niels";
+	j["nothing"] = nullptr;
+	j["answer"]["everything"] = 42; // 初始化answer对象
+	j["list"] = { 1, 0, 2 }; // 使用列表初始化的方法对"list"数组初始化
+	j["object"] = { {"currency", "USD"}, {"value", 42.99} }; // 初始化object对象
+
+	float pi = j.at("pi");
+	std::string name = j.at("name");
+	int everything = j.at("answer").at("everything");
+	std::cout << pi << std::endl; // 输出: 3.141
+	std::cout << name << std::endl; // 输出: Niels
+	std::cout << everything << std::endl; // 输出: 42
+	// 打印"list"数组
+	for (int i = 0; i < 3; i++)
+		std::cout << j.at("list").at(i) << std::endl;
+	// 打印"object"对象中的元素
+	std::cout << j.at("object").at("currency") << std::endl; // 输出: USD
+	std::cout << j.at("object").at("value") << std::endl; // 输出: 42.99
+
+	return 0;
+}
+#endif 

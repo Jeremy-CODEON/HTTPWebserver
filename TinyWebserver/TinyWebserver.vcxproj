@@ -94,6 +94,8 @@
     <ClInclude Include="buffer_io.h" />
     <ClInclude Include="core.h" />
     <ClInclude Include="base_io.h" />
+    <ClInclude Include="include\nlohmann\json.hpp" />
+    <ClInclude Include="include\nlohmann\json_fwd.hpp" />
     <ClInclude Include="process_pool.h" />
     <ClInclude Include="process_pool_test.h" />
     <ClInclude Include="rpc.h" />
