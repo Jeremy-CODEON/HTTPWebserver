@@ -64,8 +64,9 @@ bool WebServerUtils::parse_uri(const std::string uri, std::string& filename, std
 void WebServerUtils::client_error(int fd, std::string cause, std::string errnum, std::string shortmsg, std::string longmsg)
 {
 	char buffer[core::MAX_LINE];  /*写缓冲区*/
-	std::string respond_body;  /*响应报文消息体*/
+	memset(buffer, '\0', core::MAX_LINE);  /*缓冲区初始化*/
 
+	std::string respond_body;  /*响应报文消息体*/
 	// 构建响应报文消息体
 	respond_body += "<html><title>Tiny Error</title>";
 	respond_body += "<body bgcolor=""ffffff"">\r\n";
@@ -75,20 +76,25 @@ void WebServerUtils::client_error(int fd, std::string cause, std::string errnum,
 
 	// 输出HTTP响应报文状态行到客户端
 	sprintf(buffer, "HTTP/1.0 %s %s\r\n", errnum.c_str(), shortmsg.c_str());
-	BaseIO::written_n(fd, buffer, strlen(buffer));
+	//BaseIO::written_n(fd, buffer, strlen(buffer));
+	send(fd, buffer, strlen(buffer), 0);
 	// 输出HTTP响应报文消息头到客户端
 	sprintf(buffer, "Content-type: text/html\r\n");
-	BaseIO::written_n(fd, buffer, strlen(buffer));
+	//BaseIO::written_n(fd, buffer, strlen(buffer));
+	send(fd, buffer, strlen(buffer), 0);
 	sprintf(buffer, "Content-length: %d\r\n\r\n", respond_body.length());
-	BaseIO::written_n(fd, buffer, strlen(buffer));
+	//BaseIO::written_n(fd, buffer, strlen(buffer));
+	send(fd, buffer, strlen(buffer), 0);
 	// 输出HTTP响应报文消息体到客户端
 	sprintf(buffer, "%s", respond_body.c_str());
-	BaseIO::written_n(fd, buffer, strlen(buffer));
+	//BaseIO::written_n(fd, buffer, strlen(buffer));
+	send(fd, buffer, strlen(buffer), 0);
 }
 
 void WebServerUtils::read_request_head(buffer_t* bp)
 {
 	char buffer[core::MAX_LINE];  /*读缓冲区*/
+	memset(buffer, '\0', core::MAX_LINE);  /*缓冲区初始化*/
 
 	// 仅读入请求报文消息头
 	BufferIO::buffer_read_line(bp, buffer, core::MAX_LINE);
@@ -137,10 +143,13 @@ void WebServerUtils::serve_static(int fd, std::string filename, int filesize)
 	respond_head += "Content-length: " + std::to_string(filesize) + "\r\n";
 	respond_head += "Content-type: " + filetype + "\r\n\r\n";
 
-	// 发送响应报文消息头给客户端
 	char buffer[core::MAX_LINE];  /*写缓冲区*/
+	memset(buffer, '\0', core::MAX_LINE);  /*缓冲区初始化*/
+
+	// 发送响应报文消息头给客户端
 	sprintf(buffer, "%s", respond_head.c_str());
-	BaseIO::written_n(fd, buffer, strlen(buffer));
+	//BaseIO::written_n(fd, buffer, strlen(buffer));
+	send(fd, buffer, strlen(buffer), 0);
 
 	// 打开静态文件
 	int file_fd = -1;
@@ -162,7 +171,8 @@ void WebServerUtils::serve_static(int fd, std::string filename, int filesize)
 	}
 
 	// 发送响应报文消息体（即静态文件）给客户端
-	BaseIO::written_n(fd, filep, filesize);
+	//BaseIO::written_n(fd, filep, filesize);
+	send(fd, filep, filesize, 0);
 
 	// 释放共享内存
 	if (munmap(filep, filesize) == -1) {
@@ -177,10 +187,13 @@ void WebServerUtils::serve_dynamic(int fd, std::string filename, std::string cgi
 	respond_head += "HTTP/1.0 200 OK\r\n";
 	respond_head += "Server: Tiny Web Server\r\n";
 
-	// 发送响应报文消息头的一部分给客户端
 	char buffer[core::MAX_LINE];  /*写缓冲区*/
+	memset(buffer, '\0', core::MAX_LINE);  /*缓冲区初始化*/
+
+	// 发送响应报文消息头的一部分给客户端
 	sprintf(buffer, "%s", respond_head.c_str());
-	BaseIO::written_n(fd, buffer, strlen(buffer));
+	//BaseIO::written_n(fd, buffer, strlen(buffer));
+	send(fd, buffer, strlen(buffer), 0);
 
 	if (fork() == 0) {
 		// 执行CGI程序的子进程，设置环境变量传入参数
@@ -209,6 +222,8 @@ void WebServerUtils::serve_dynamic(int fd, std::string filename, std::string cgi
 int WebServerUtils::doit(int fd)
 {
 	char buffer[core::MAX_LINE];  /*读缓冲区*/
+	memset(buffer, '\0', core::MAX_LINE);  /*缓冲区初始化*/
+
 	char method[core::MAX_LINE];  /*HTTP方法*/
 	char uri[core::MAX_LINE];  /*HTTPuri*/
 	char version[core::MAX_LINE];  /*HTTP版本*/

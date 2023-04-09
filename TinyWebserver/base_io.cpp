@@ -41,7 +41,7 @@ ssize_t BaseIO::written_n(int fd, void* usrbuf, size_t n)
 	char* usrbufp = static_cast<char*>(usrbuf);
 
 	while (n_left > 0) {
-	n_written = write(fd, usrbufp, n_left);
+		n_written = write(fd, usrbufp, n_left);
 		if (n_written == -1) {
 			if (errno == EINTR) {
 				// 由中断引起的-1，则重新执行read()

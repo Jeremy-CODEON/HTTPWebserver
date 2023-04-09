@@ -18,8 +18,10 @@ Buffer::Buffer(const Buffer& _buff)
 	fd = _buff.fd;
 	rw_flag = _buff.rw_flag;
 	n_left = _buff.n_left;
-	// 申请缓冲区并拷贝
+	// 申请缓冲区
 	buffer_area = new char[core::IO_BUFFERSIZE];
+	memset(buffer_area, '\0', core::IO_BUFFERSIZE);  /*缓冲区初始化*/
+	// 拷贝
 	for (int i = 0; i < core::IO_BUFFERSIZE; ++i) {
 		*(buffer_area + i) = *(_buff.buffer_area + i);
 	}
@@ -29,6 +31,11 @@ Buffer::Buffer(const Buffer& _buff)
 
 Buffer::~Buffer()
 {
+	// 写文件先刷新缓冲区
+	if (rw_flag == 2) {
+		BufferIO::buffer_written_flush(this);
+	}
+
 	if (buffer_area != nullptr) {
 		delete[]buffer_area;
 	}
@@ -87,6 +94,8 @@ ssize_t BufferIO::buffer_read(buffer_t* bp, void* usrbuf, size_t n)
 	assert(bp->rw_flag == 1);
 	
 	while (bp->n_left <= 0) {
+		//memset(bp->buffer_area, '\0', core::IO_BUFFERSIZE);  /*缓冲区初始化*/
+
 		// 从文件中读取一块至多为缓冲区大小的字节到缓冲区中，而不是仅读取字节n
 		bp->n_left = read(bp->fd, bp->buffer_area, core::IO_BUFFERSIZE);
 		if (bp->n_left == -1) {
@@ -200,6 +209,8 @@ ssize_t BufferIO::buffer_written(buffer_t* bp, void* usrbuf, size_t n)
 	bp->n_left += cnt;
 
 	while (bp->n_left >= core::IO_BUFFERSIZE) {
+		//memset(bp->buffer_area, '\0', core::IO_BUFFERSIZE);  /*缓冲区初始化*/
+
 		// 将缓冲区大小的字节直接写到文件中，而不是仅写字节n
 		int n_written = write(bp->fd, bp->buffer_area, core::IO_BUFFERSIZE);
 		if (n_written == -1) {

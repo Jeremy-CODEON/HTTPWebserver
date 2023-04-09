@@ -65,7 +65,7 @@ namespace core {
 	/*
 	* @brief IO读写缓冲区大小
 	*/
-	constexpr unsigned long IO_BUFFERSIZE = 120;
+	constexpr unsigned long IO_BUFFERSIZE = 8192;
 
 	/*
 	* @brief IO读取一行的最大字节
@@ -100,7 +100,7 @@ namespace core {
 	/*
 	* @brief 定时器超时时间
 	*/
-	constexpr int EXPIRED_TIME = 10;
+	constexpr int EXPIRED_TIME = 30;
 
 	/*
 	* @brief epoll工具类

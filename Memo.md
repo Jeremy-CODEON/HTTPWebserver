@@ -370,6 +370,24 @@ WeakPointer wptr(WeakPointer());
 
 
 
+### 25. 网络传输用send()和recv()
+
+- 不要使用read和write，因为它们可能不能感知当前数据流是否已经结束；
+- send()和recv()更加稳健；
+
+- 使用`buffer`字符数组作为**读缓冲区**时，一定要注意缓冲区的初始化，
+  - 否则读取的内容会和缓冲区中已有的内容粘连；
+  - 因为recv()会自动去除末尾的'\0'，再把字符串写入buffer中；
+    - 写缓冲区则无需初始化，因为无论是`std::string`转换还是`""`都会默认在后面加上`\0`的（不过为了保险或者规范化起见还是最好一并初始化）；
+    - 初始化时缓冲区大小不能用`strlen()`，因为它遇到`\0`即返回，并不是全部的空间；
+
+```c++
+char buffer[core::MAX_LINE];  /*读缓冲区*/
+memset(buffer, '\0', core::MAX_LINE);  /*缓冲区初始化*/
+```
+
+
+
 ## 注释规范
 
 - 用的是doxygen注解规范；
@@ -517,6 +535,25 @@ WeakPointer wptr(WeakPointer());
 
 
 
+### 1. Resource temporarily unavailable
+
+- 是由于非阻塞读，但此时的读并未准备好，也就是没有内容可读，则会引发该错误；
+  - 因为非阻塞读是立刻返回的；
+  - 如果是阻塞读就不会有这种情况；
+  - 网络传输统一使用send和recv函数，不要用read或者write函数；
+
+
+
+### 2. buffer_read_line函数的相关问题
+
+- 使用`buffer_read_line`的时候记得将它的缓冲区增加至足够大，不然在网络传输中会出现未知的读写错乱；
+
+  - 如果是读写本地文件的话则`buffer_read_line`的缓冲区是稳健的；
+
+  - 但也有可能是多线程的问题；
+
+  - 暂时还不能处理；
+
 
 
 ## 智能指针设计
@@ -599,7 +636,13 @@ WeakPointer wptr(WeakPointer());
     - 记录返回值的类型；
     - 记录返回值的值；
 - 和HTTP服务的区分：
-  - 在JSON中包含RPC版本号作为关键字进行区分；
+  - ~~在JSON中包含RPC版本号作为关键字进行区分~~；
+  - 通过端口区分；
+- 网络I/O：
+  - 客户端：
+    - 使用阻塞I/O；
+  - 服务器端：
+    -  使用非阻塞I/O；
 
 
 
@@ -607,3 +650,4 @@ WeakPointer wptr(WeakPointer());
 
 - 目前是单线程的，所以：
   - 可能接收缓冲区接收不过来，导致出现Read error: Resource temporarily unavailable错误而使得发送出错；
+  - 改用send和recv函数之后基本上不会出现该错误；
