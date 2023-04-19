@@ -1145,12 +1145,26 @@ int main(int argc, char* argv[])
 	//core::EpollUtils::set_nonblocking(sockfd);
 
 	RPCStub rpc_client(RPC_CLIENT);
-	int retval = rpc_client.rpc_call_client(sockfd, "add", 12, 5);
+	int retval = rpc_client.rpc_call_client<int>(sockfd, "add", 12, 5);
 	printf("add retval: %d\n", retval);
-	retval = rpc_client.rpc_call_client(sockfd, "minus", 12, 5);
+	retval = rpc_client.rpc_call_client<int>(sockfd, "minus", 12, 5);
 	printf("minus retval: %d\n", retval);
-	retval = rpc_client.rpc_call_client(sockfd, "mod", 12, 5);
+	retval = rpc_client.rpc_call_client<int>(sockfd, "mod", 12, 5);
 	printf("mod retval: %d\n", retval);
+
+	retval = rpc_client.rpc_call_client<int>(sockfd, "p0");
+	printf("test p0: %d\n", retval);
+	retval = rpc_client.rpc_call_client<int>(sockfd, "p1", 2);
+	printf("test p1: %d\n", retval);
+	retval = rpc_client.rpc_call_client<int>(sockfd, "p2", 2, 2);
+	printf("test p2: %d\n", retval);
+	retval = rpc_client.rpc_call_client<int>(sockfd, "p3", 2, 2, 2);
+	printf("test p3: %d\n", retval);
+	retval = rpc_client.rpc_call_client<int>(sockfd, "p4", 2, 2, 2, 2);
+	printf("test p4: %d\n", retval);
+
+	rpc_client.rpc_call_client<void>(sockfd, "void", 2, 2);
+	printf("test void\n");
 
 	return 0;
 }

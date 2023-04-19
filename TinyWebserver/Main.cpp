@@ -18,13 +18,31 @@
 int rpc_add(int a, int b) {
 	return a + b;
 }
-
 int rpc_minus(int a, int b) {
 	return a - b;
 }
-
 int rpc_mod(int a, int b) {
 	return a % b;
+}
+
+int rpc_p0() {
+	return 0;
+}
+int rpc_p1(int a) {
+	return 1;
+}
+int rpc_p2(int a, int b) {
+	return 2;
+}
+int rpc_p3(int a, int b, int c) {
+	return 3;
+}
+int rpc_p4(int a, int b, int c, int d) {
+	return 4;
+}
+
+void rpc_void(int a, int b) {
+	return;
 }
 #endif
 
@@ -181,9 +199,15 @@ int main() {
 	// 创建RPC服务器存根
 	RPCStub rpc_server(RPC_SERVER);
 	// 添加函数映射
+	rpc_server.add_stub("p0", rpc_p0);
+	rpc_server.add_stub("p1", rpc_p1);
+	rpc_server.add_stub("p2", rpc_p2);
+	rpc_server.add_stub("p3", rpc_p3);
+	rpc_server.add_stub("p4", rpc_p4);
 	rpc_server.add_stub("add", rpc_add);
 	rpc_server.add_stub("minus", rpc_minus);
 	rpc_server.add_stub("mod", rpc_mod);
+	rpc_server.add_stub("void", rpc_void);
 
 	/*创建sub_reactor*/
 	ThreadExecutable task(2, sub_epollfd, -1, &rpc_server, &is_stop);
